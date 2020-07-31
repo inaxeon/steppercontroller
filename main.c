@@ -28,12 +28,14 @@
 #include <avr/pgmspace.h>
 #include <avr/interrupt.h>
 
+#include "iopins.h"
 #include "config.h"
 #include "cmd.h"
 #include "usart.h"
 #include "timeout.h"
 #include "util.h"
 #include "timer.h"
+#include "stepper.h"
 
 typedef struct
 {
@@ -47,14 +49,6 @@ FILE uart_str = FDEV_SETUP_STREAM(print_char, NULL, _FDEV_SETUP_RW);
 
 static void io_init(void);
 static void check_mains(void *param);
-
-ISR(PCINT0_vect)
-{
-}
-
-ISR(TIMER1_OVF_vect)
-{
-}
 
 int main(void)
 {
@@ -77,19 +71,24 @@ int main(void)
 
     CLRWDT();
 
+    stepper_init(config->step_delay_ms);
     timeout_create(1000, true, true, &check_mains, (void *)rs);
 
     // Idle loop
     for (;;)
     {
         timeout_check();
-        cmd_process();
+        cmd_process(config);
         CLRWDT();
     }
 }
 
+
 static void io_init(void)
 {
+
+#ifdef _LEONARDO_
+#if 0
     DDRE &= ~_BV(PE6); // INT6
     EIMSK |= _BV(INT6);
 
@@ -100,9 +99,10 @@ static void io_init(void)
     DDRB &= ~_BV(PB6);
     PCICR |= _BV(PCIE0);
     PCMSK0 |= _BV(PCINT6);
-    
+#endif
     // Disable USB, because the bootloader has probably left it on
     USBCON &= ~_BV(USBE);
+#endif
 }
 
 static void check_mains(void *param)

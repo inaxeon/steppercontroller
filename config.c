@@ -26,9 +26,6 @@
 #include "config.h"
 #include "util.h"
 
-static void default_configuration(sys_config_t *config);
-static void save_configuration(sys_config_t *config);
-
 void load_configuration(sys_config_t *config)
 {
     uint16_t config_size = sizeof(sys_config_t);
@@ -48,12 +45,13 @@ void load_configuration(sys_config_t *config)
     }
 }
 
-static void default_configuration(sys_config_t *config)
+void default_configuration(sys_config_t *config)
 {
     config->magic = CONFIG_MAGIC;
+    config->step_delay_ms = 50;
 }
 
-static void save_configuration(sys_config_t *config)
+void save_configuration(sys_config_t *config)
 {
     eeprom_write_data(0, (uint8_t *)config, sizeof(sys_config_t));
 }

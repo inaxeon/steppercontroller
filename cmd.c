@@ -24,6 +24,7 @@
 #include <avr/pgmspace.h>
 
 #include "project.h"
+#include "config.h"
 #include "cmd.h"
 #include "stepper.h"
 #include "usart.h"
@@ -87,10 +88,28 @@ static void do_help(void)
 {
     printf(
         "\r\nCommands:\r\n\r\n"
+        "\tshow\r\n"
+        "\t\tShow current configuration\r\n\r\n"
+        "\tdefault\r\n"
+        "\t\tLoad the default configuration\r\n\r\n"
+        "\tsave\r\n"
+        "\t\tSave current configuration\r\n\r\n"
+        "\tstepdelay [1-100]\r\n"
+        "\t\tStep delay in milliseconds\r\n\r\n"
     );
 }
 
-static bool command_prompt_handler(char *text)
+static void do_show(sys_config_t *config)
+{
+    printf(
+            "\r\nCurrent configuration:\r\n\r\n"
+            "\tstepdelay ...........: %u\r\n"
+            "\r\n",
+            config->step_delay_ms
+    );
+}
+
+static bool command_prompt_handler(char *text, sys_config_t *config)
 {
     char *command;
     char *arg;
@@ -105,7 +124,7 @@ static bool command_prompt_handler(char *text)
         if (!parse_param(&numsteps, PARAM_U16, arg))
             return false;
         
-        step_fixed_count(STEP_FORWARD, numsteps);
+        stepper_move_fixed_count(STEP_FORWARD, numsteps);
         return true;
     }
     else if (!stricmp(command, "reverse") || !stricmp(command, "r"))
@@ -115,7 +134,30 @@ static bool command_prompt_handler(char *text)
         if (!parse_param(&numsteps, PARAM_U16, arg))
             return false;
         
-        step_fixed_count(STEP_REVERSE, numsteps);
+        stepper_move_fixed_count(STEP_REVERSE, numsteps);
+        return true;
+    }
+    else if (!stricmp(command, "stepdelay"))
+    {
+        bool ret = parse_param(&config->step_delay_ms, PARAM_U16, arg);
+        stepper_set_delay(config->step_delay_ms);
+        return ret;
+    }
+    else if (!stricmp(command, "show"))
+    {
+        do_show(config);
+        return true;
+    }
+    else if (!stricmp(command, "save"))
+    {
+        save_configuration(config);
+        printf("\r\nConfiguration saved.\r\n\r\n");
+        return true;
+    }
+    else if (!stricmp(command, "default"))
+    {
+        default_configuration(config);
+        printf("\r\nDefault configuration loaded.\r\n\r\n");
         return true;
     }
     else if (!stricmp(command, "reset"))
@@ -189,7 +231,7 @@ void cmd_init(void)
     _g_current_console = CONSOLE_1;
 }
 
-void cmd_process_state(void)
+void cmd_process_state(sys_config_t *config)
 {
     uint8_t idx, i;
 
@@ -297,7 +339,7 @@ void cmd_process_state(void)
 					ccmd->show_history = tostore;
 				}
                 
-                ret = command_prompt_handler(ccmd->cmd_buf);
+                ret = command_prompt_handler(ccmd->cmd_buf, config);
 
                 if (!ret)
 					printf("Error: Command failed\r\n");
@@ -449,7 +491,7 @@ void cmd_process_char(uint8_t c, uint8_t idx)
     }
 }
 
-void cmd_process(void)
+void cmd_process(sys_config_t *config)
 {
     uint8_t i;
     for (i = 0; i < CMD_MAX_CONSOLE; i++)
@@ -458,5 +500,5 @@ void cmd_process(void)
             cmd_process_char(console_get(), CONSOLE_1);
     }
 
-    cmd_process_state();
+    cmd_process_state(config);
 }

@@ -31,16 +31,6 @@
 #define g_irq_disable cli
 #define g_irq_enable sei
 
-#define USART1_DDR         DDRD
-#define USART1_TX          PD3
-#define USART1_RX          PD2
-#define USART1_XCK         PD5
-
-#define SPI_DDR            DDRB
-#define SPI_PORT           PORTB
-#define SPI_MISO           PB3
-#define SPI_MOSI           PB2
-#define SPI_SCK            PB1
 
 #define UART1_BAUD           9600
 

@@ -47,7 +47,7 @@ typedef struct
 timeout_t _g_timers[MAX_SOFT_TIMERS];
 int32_t _g_tick_count;
 
-ISR(INT6_vect)
+ISR(TIMER1_OVF_vect)
 {
     _g_tick_count++;
 }

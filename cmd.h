@@ -23,7 +23,7 @@
 
 #define CONSOLE_1       0x00
 
-void cmd_process(void);
+void cmd_process(sys_config_t *config);
 void cmd_init(void);
 
 #endif /* __CMD_H__ */

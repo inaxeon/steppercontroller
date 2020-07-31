@@ -9,22 +9,29 @@
 # Fixes clash between windows and coreutils mkdir. Comment out the below line to compile on Linux
 COREUTILS  = C:/Projects/coreutils/bin/
 
-DEVICE     = atmega32u4
 CLOCK      = 16000000
-PROGRAMMER = -c arduino -P COM3 -c avr109 -b 57600 
+PROGRAMMER = -P COM5 -c arduino -b 115200  
 SRCS       = main.c cmd.c config.c util.c timeout.c usart_buffered.c stepper.c
 OBJS       = $(SRCS:.c=.o)
-FUSES      = -U lfuse:w:0x4F:m -U hfuse:w:0xC1:m -U efuse:w:0xff:m
+#FUSES      = -U lfuse:w:0x4F:m -U hfuse:w:0xC1:m -U efuse:w:0xff:m
 DEPDIR     = deps
 DEPFLAGS   = -MT $@ -MMD -MP -MF $(DEPDIR)/$*.Td
 RM         = rm
 MV         = mv
 MKDIR      = $(COREUTILS)mkdir
 
+ifeq ($(ARDUINO), LEONARDO)
+DEVICE     = atmega32u4
+CFLAGS     = -D_LEONARDO_
+else
+DEVICE     = atmega328p
+CFLAGS     = -D_UNO_
+endif
+
 POSTCOMPILE = $(MV) $(DEPDIR)/$*.Td $(DEPDIR)/$*.d && touch $@
 
 AVRDUDE = avrdude $(PROGRAMMER) -p $(DEVICE)
-COMPILE = avr-gcc -Wall -Os $(DEPFLAGS) -DF_CPU=$(CLOCK) -mmcu=$(DEVICE)
+COMPILE = avr-gcc -Wall -Os $(DEPFLAGS) $(CFLAGS) -DF_CPU=$(CLOCK) -mmcu=$(DEVICE)
 
 all:	steppercontroller.hex
 

@@ -20,11 +20,11 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-
 #include <avr/io.h>
 #include <avr/interrupt.h>
 
 #include "usart_buffered.h"
+#include "iopins.h"
 
 #define UART_TX_BUFFER_SIZE 64
 #define UART_RX_BUFFER_SIZE 256
@@ -50,17 +50,17 @@ static volatile uint8_t _g_usart_rxhead;
 static volatile uint8_t _g_usart_rxtail;
 static volatile uint8_t _g_usart_last_rx_error;
 
-ISR(USART1_RX_vect)
+ISR(USARTA_RX_vect)
 {
     uint8_t tmphead;
     uint8_t data;
     uint8_t usr;
     uint8_t lastRxError;
  
-    usr  = UCSR1A;
-    data = UDR1;
+    usr  = UCSRAA;
+    data = UDRA;
     
-    lastRxError = (usr & (_BV(FE1) | _BV(DOR1)));
+    lastRxError = (usr & (_BV(FEA) | _BV(DORA)));
     tmphead = (_g_usart_rxhead + 1) & UART_RX_BUFFER_MASK;
     
     if (tmphead == _g_usart_rxtail)
@@ -76,7 +76,7 @@ ISR(USART1_RX_vect)
     _g_usart_last_rx_error = lastRxError;   
 }
 
-ISR(USART1_UDRE_vect)
+ISR(USARTA_UDRE_vect)
 {
     uint8_t tmptail;
     
@@ -84,11 +84,11 @@ ISR(USART1_UDRE_vect)
     {
         tmptail = (_g_usart_txtail + 1) & UART_TX_BUFFER_MASK;
         _g_usart_txtail = tmptail;
-        UDR1 = _g_usart_txbuf[tmptail];
+        UDRA = _g_usart_txbuf[tmptail];
     }
     else
     {
-        UCSR1B &= ~_BV(UDRIE1);
+        UCSRAB &= ~_BV(UDRIEA);
     }
 }
 
@@ -99,24 +99,22 @@ void usart1_open(uint8_t flags, uint16_t brg)
     _g_usart_rxhead = 0;
     _g_usart_rxtail = 0;
     
-    UCSR1C |= _BV(UMSEL11);
-
     if (flags & USART_SYNC)
-        UCSR1C |= _BV(UMSEL10);
+        UCSRAC |= _BV(UMSELA0);
     else
-        UCSR1C &= ~_BV(UMSEL10);
+        UCSRAC &= ~_BV(UMSELA0);
 
     if (flags & USART_9BIT)
     {
-        UCSR1C |= _BV(UCSZ10);
-        UCSR1C |= _BV(UCSZ11);
-        UCSR1B |= _BV(UCSZ12);
+        UCSRAC |= _BV(UCSZA0);
+        UCSRAC |= _BV(UCSZA1);
+        UCSRAB |= _BV(UCSZA2);
     }
     else
     {
-        UCSR1C |= _BV(UCSZ10);
-        UCSR1C |= _BV(UCSZ11);
-        UCSR1B &= ~_BV(UCSZ12);
+        UCSRAC |= _BV(UCSZA0);
+        UCSRAC |= _BV(UCSZA1);
+        UCSRAB &= ~_BV(UCSZA2);
     }
 
     if (flags & USART_SYNC)
@@ -128,16 +126,16 @@ void usart1_open(uint8_t flags, uint16_t brg)
     }
 
     if (flags & USART_CONT_RX)
-        UCSR1B |= _BV(RXEN1);
+        UCSRAB |= _BV(RXENA);
     else
-        UCSR1B &= ~_BV(RXEN1);
+        UCSRAB &= ~_BV(RXENA);
 
-    UCSR1B |= _BV(RXCIE1);
+    UCSRAB |= _BV(RXCIEA);
 
-    UBRR1L = (brg & 0xFF);
-    UBRR1H = (brg >> 8);
+    UBRRAL = (brg & 0xFF);
+    UBRRAH = (brg >> 8);
 
-    UCSR1B |= _BV(TXEN1);
+    UCSRAB |= _BV(TXENA);
 
     USART1_DDR |= _BV(USART1_TX);
     USART1_DDR &= ~_BV(USART1_RX);
@@ -172,12 +170,12 @@ void usart1_put(char c)
     _g_usart_txbuf[tmphead] = c;
     _g_usart_txhead = tmphead;
 
-    UCSR1B |= _BV(UDRIE1);
+    UCSRAB |= _BV(UDRIEA);
 }
 
 bool usart1_busy(void)
 {
-    return (_g_usart_txhead != _g_usart_txtail || (UCSR1A & _BV(UDRE1)) == 0);
+    return (_g_usart_txhead != _g_usart_txtail || (UCSRAA & _BV(UDREA)) == 0);
 }
 
 void usart1_clear_oerr(void)
