@@ -80,6 +80,7 @@ typedef struct
 static void cmd_prompt(cmd_state_t *ccmd);
 static void cmd_erase_line(cmd_state_t *ccmd);
 static bool parse_param(void *param, uint8_t type, char *arg);
+static void do_singlestep();
 
 uint8_t _g_current_console;
 cmd_state_t _g_cmd[CMD_MAX_CONSOLE];
@@ -96,6 +97,12 @@ static void do_help(void)
         "\t\tSave current configuration\r\n\r\n"
         "\tstepdelay [1-100]\r\n"
         "\t\tStep delay in milliseconds\r\n\r\n"
+        "\tforward|f [numsteps]\r\n"
+        "\t\tStep forward n number of steps\r\n\r\n"
+        "\treverse|r [numsteps]\r\n"
+        "\t\tStep in reverse n number of steps\r\n\r\n"
+        "\tsinglestep\r\n"
+        "\t\tEnter single step mode\r\n\r\n"
     );
 }
 
@@ -137,6 +144,11 @@ static bool command_prompt_handler(char *text, sys_config_t *config)
         stepper_move_fixed_count(STEP_REVERSE, numsteps);
         return true;
     }
+    else if (!stricmp(command, "singlestep"))
+    {
+        do_singlestep();
+        return true;
+    }
     else if (!stricmp(command, "stepdelay"))
     {
         bool ret = parse_param(&config->step_delay_ms, PARAM_U16, arg);
@@ -174,6 +186,36 @@ static bool command_prompt_handler(char *text, sys_config_t *config)
 
     printf("Error: No such command (%s)\r\n", command);
     return false;
+}
+
+static void do_singlestep(void)
+{
+    printf("Press arrow keys W/E keys to step back/forward. Press 'Q' to return to prompt.\r\n");
+
+    for (;;)
+    {
+        if (console_data_ready())
+        {
+            char c = console_get();
+            switch (c)
+            {
+                case 'w':
+                case 'W':
+                    stepper_move_fixed_count(STEP_REVERSE, 1);
+                    printf("%u ", stepper_get_phase());
+                    break;
+                case 'e':
+                case 'E':
+                    stepper_move_fixed_count(STEP_FORWARD, 1);
+                    printf("%u ", stepper_get_phase());
+                    break;
+                case 'q':
+                case 'Q':
+                    printf("\r\n");
+                    return;
+            }
+        }
+    }
 }
 
 static bool parse_param(void *param, uint8_t type, char *arg)

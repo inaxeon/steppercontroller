@@ -22,6 +22,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <util/delay.h>
+#include <avr/pgmspace.h>
 #include <avr/io.h>
 
 #include "stepper.h"
@@ -30,18 +31,20 @@
 
 static uint8_t _g_step_phase;
 static uint16_t _g_delay;
+static uint8_t _g_last_dir;
 
 static void stepper_step(uint8_t phase);
 
 void stepper_init(uint16_t delay)
 {
-    // IO_OUTPUT(ENA);
-    // IO_OUTPUT(ENB);
-    // IO_OUTPUT(DIRA);
-    // IO_OUTPUT(DIRB);
+    IO_OUTPUT(ENA);
+    IO_OUTPUT(ENB);
+    IO_OUTPUT(DIRA);
+    IO_OUTPUT(DIRB);
 
     _g_step_phase = 3;
     _g_delay = delay;
+    _g_last_dir = STEP_FORWARD;
 }
 
 void stepper_set_delay(uint16_t delay)
@@ -49,44 +52,49 @@ void stepper_set_delay(uint16_t delay)
     _g_delay = delay;
 }
 
+uint8_t stepper_get_phase(void)
+{
+    return _g_step_phase;
+}
+
+void stepper_shift_phase(uint8_t dir)
+{
+    if (dir == STEP_FORWARD)
+    {
+        if (_g_step_phase == 3)
+            _g_step_phase = 0;
+        else
+            _g_step_phase++;
+    }
+    
+    if (dir == STEP_REVERSE)
+    {
+        if (_g_step_phase == 0)
+            _g_step_phase = 3;
+        else
+            _g_step_phase--;
+    }
+}
+
 void stepper_move_fixed_count(uint8_t dir, uint16_t steps)
 {
     uint16_t i;
 
-    IO_OUTPUT(ENA);
-    IO_OUTPUT(ENB);
-    IO_OUTPUT(DIRA);
-    IO_OUTPUT(DIRB);
-
-    IO_LOW(ENA);
+    IO_HIGH(ENA);
+    IO_HIGH(ENB);
 
     for (i = 0; i < steps; i++)
     {
-        if (dir == STEP_FORWARD)
-        {
-            if (_g_step_phase == 3)
-                _g_step_phase = 0;
-            else
-                _g_step_phase++;
-        }
-        
-        if (dir == STEP_REVERSE)
-        {
-            if (_g_step_phase == 0)
-                _g_step_phase = 3;
-            else
-                _g_step_phase--;
-        }
+        if (dir == _g_last_dir)
+            stepper_shift_phase(dir);
+
+        _g_last_dir = dir;
 
         stepper_step(_g_step_phase);
     }
 
-    IO_HIGH(ENA);
-
-    IO_INPUT(ENA);
-    IO_INPUT(ENB);
-    IO_INPUT(DIRA);
-    IO_INPUT(DIRB);
+    IO_LOW(ENA);
+    IO_LOW(ENB);
 }
 
 static void stepper_step(uint8_t phase)

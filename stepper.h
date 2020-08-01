@@ -41,5 +41,6 @@
 void stepper_init(uint16_t delay);
 void stepper_set_delay(uint16_t delay);
 void stepper_move_fixed_count(uint8_t dir, uint16_t steps);
+uint8_t stepper_get_phase(void);
 
 #endif /* __STEPPER_H__ */
