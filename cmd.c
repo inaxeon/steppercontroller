@@ -148,8 +148,7 @@ static bool command_prompt_handler(char *text, sys_config_t *config)
         if (!parse_param(&numsteps, PARAM_U16, arg))
             return false;
         
-        stepper_move_fixed_count(STEP_REVERSE, numsteps);
-        return true;
+        return stepper_move_fixed_count(STEP_REVERSE, numsteps);
     }
     if (!stricmp(command, "forwardcont") || !stricmp(command, "fc"))
     {

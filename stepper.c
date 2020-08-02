@@ -107,15 +107,13 @@ static void stepper_shift_phase(uint8_t dir)
 
 bool stepper_move_fixed_count(uint8_t dir, uint16_t steps)
 {
-    uint16_t i;
-
     if (_g_contstep_running)
         return false;
 
     IO_HIGH(ENA);
     IO_HIGH(ENB);
 
-    for (i = 0; i < steps; i++)
+    for (uint16_t i = 0; i < steps; i++)
     {
         if (dir == _g_last_dir)
             stepper_shift_phase(dir);
@@ -124,7 +122,7 @@ bool stepper_move_fixed_count(uint8_t dir, uint16_t steps)
 
         stepper_step(_g_step_phase);
 
-        for (uint16_t i = 0; i < _g_delay; i++)
+        for (uint16_t j = 0; j < _g_delay; j++)
             _delay_us(100);
     }
 
