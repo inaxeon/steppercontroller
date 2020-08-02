@@ -21,7 +21,7 @@
 
 typedef struct {
     uint16_t magic;
-    uint16_t step_delay_ms;
+    uint16_t step_delay_01ms;
 } sys_config_t;
 
 void load_configuration(sys_config_t *config);

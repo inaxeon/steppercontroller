@@ -24,16 +24,36 @@
 #include <util/delay.h>
 #include <avr/pgmspace.h>
 #include <avr/io.h>
+#include <avr/interrupt.h>
 
 #include "stepper.h"
 #include "iopins.h"
+#include "timer.h"
 #include "util.h"
 
 static uint8_t _g_step_phase;
 static uint16_t _g_delay;
 static uint8_t _g_last_dir;
+static uint8_t _g_timer_reload;
+static uint8_t _g_cont_step_dir;
+static bool _g_contstep_running;
 
+static void stepper_shift_phase(uint8_t dir);
 static void stepper_step(uint8_t phase);
+
+ISR(TIMER0_OVF_vect)
+{
+    if (!_g_contstep_running)
+    {
+        timer0_stop();
+        IO_LOW(ENA);
+        IO_LOW(ENB);
+    }
+
+    stepper_shift_phase(_g_cont_step_dir);
+    stepper_step(_g_step_phase);
+    timer0_reload(_g_timer_reload);
+}
 
 void stepper_init(uint16_t delay)
 {
@@ -43,12 +63,21 @@ void stepper_init(uint16_t delay)
     IO_OUTPUT(DIRB);
 
     _g_step_phase = 3;
-    _g_delay = delay;
+    
     _g_last_dir = STEP_FORWARD;
+    _g_contstep_running = false;
+
+    stepper_set_delay(delay);
+    timer0_init();
 }
 
 void stepper_set_delay(uint16_t delay)
 {
+    uint16_t cycles_per_ms = (255 * 100) / 164;
+    uint16_t cycles_for_period = cycles_per_ms * delay;
+
+    cycles_for_period /= 100;
+    _g_timer_reload = (0x100 - (uint8_t)cycles_for_period);
     _g_delay = delay;
 }
 
@@ -57,7 +86,7 @@ uint8_t stepper_get_phase(void)
     return _g_step_phase;
 }
 
-void stepper_shift_phase(uint8_t dir)
+static void stepper_shift_phase(uint8_t dir)
 {
     if (dir == STEP_FORWARD)
     {
@@ -76,9 +105,12 @@ void stepper_shift_phase(uint8_t dir)
     }
 }
 
-void stepper_move_fixed_count(uint8_t dir, uint16_t steps)
+bool stepper_move_fixed_count(uint8_t dir, uint16_t steps)
 {
     uint16_t i;
+
+    if (_g_contstep_running)
+        return false;
 
     IO_HIGH(ENA);
     IO_HIGH(ENB);
@@ -91,10 +123,40 @@ void stepper_move_fixed_count(uint8_t dir, uint16_t steps)
         _g_last_dir = dir;
 
         stepper_step(_g_step_phase);
+
+        for (uint16_t i = 0; i < _g_delay; i++)
+            _delay_us(100);
     }
 
     IO_LOW(ENA);
     IO_LOW(ENB);
+
+    return true;
+}
+
+void stepper_start_continous(uint8_t dir)
+{
+    _g_cont_step_dir = dir;
+    _g_contstep_running = true;
+
+    IO_HIGH(ENA);
+    IO_HIGH(ENB);
+
+    if (dir == _g_last_dir)
+        stepper_shift_phase(dir);
+
+    _g_last_dir = dir;
+
+    stepper_step(_g_step_phase);
+
+
+    timer0_reload(_g_timer_reload);
+    timer0_start();
+}
+
+void stepper_stop_continous(void)
+{
+    _g_contstep_running = false;
 }
 
 static void stepper_step(uint8_t phase)
@@ -118,7 +180,4 @@ static void stepper_step(uint8_t phase)
             IO_LOW(DIRB);
             break;
     }
-
-    for (uint16_t i = 0; i < _g_delay; i++)
-        _delay_ms(1);
 }

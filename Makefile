@@ -10,22 +10,23 @@
 COREUTILS  = C:/Projects/coreutils/bin/
 
 CLOCK      = 16000000
-PROGRAMMER = -P COM5 -c arduino -b 115200  
-SRCS       = main.c cmd.c config.c util.c timeout.c usart_buffered.c stepper.c
+SRCS       = main.c cmd.c config.c util.c timeout.c timer.c usart_buffered.c stepper.c
 OBJS       = $(SRCS:.c=.o)
-#FUSES      = -U lfuse:w:0x4F:m -U hfuse:w:0xC1:m -U efuse:w:0xff:m
 DEPDIR     = deps
 DEPFLAGS   = -MT $@ -MMD -MP -MF $(DEPDIR)/$*.Td
 RM         = rm
 MV         = mv
 MKDIR      = $(COREUTILS)mkdir
+LDFLAGS    = -Wl,-u,vfprintf -lprintf_flt -lm
 
 ifeq ($(ARDUINO), LEONARDO)
 DEVICE     = atmega32u4
 CFLAGS     = -D_LEONARDO_
+PROGRAMMER = -c arduino -P COM6 -c avr109 -b 57600 
 else
 DEVICE     = atmega328p
 CFLAGS     = -D_UNO_
+PROGRAMMER = -P COM5 -c arduino -b 115200  
 endif
 
 POSTCOMPILE = $(MV) $(DEPDIR)/$*.Td $(DEPDIR)/$*.d && touch $@
@@ -62,7 +63,7 @@ clean:
 	$(RM) -f steppercontroller.hex steppercontroller.elf $(OBJS)
 
 steppercontroller.elf: $(OBJS)
-	$(COMPILE) -o steppercontroller.elf $(OBJS)
+	$(COMPILE) -o steppercontroller.elf $(OBJS) $(LDFLAGS)
 
 steppercontroller.hex: steppercontroller.elf
 	avr-objcopy -j .text -j .data -O ihex steppercontroller.elf steppercontroller.hex

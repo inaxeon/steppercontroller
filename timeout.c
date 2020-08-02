@@ -26,6 +26,7 @@
 #include <avr/interrupt.h>
 
 #include "timeout.h"
+#include "timer.h"
 
 #define MAX_SOFT_TIMERS 10
 
@@ -50,12 +51,16 @@ int32_t _g_tick_count;
 ISR(TIMER1_OVF_vect)
 {
     _g_tick_count++;
+    timer1_reload(0xB200); // Every 10ms
 }
 
 void timeout_init(void)
 {
     _g_tick_count = 0;
     memset(&_g_timers, 0, sizeof(_g_timers));
+
+    timer1_init();
+    timer1_start();
 }
 
 void timeout_check(void)

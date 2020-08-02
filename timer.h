@@ -20,5 +20,13 @@
 #define __TIMER_H__
 
 void timer1_init(void);
+void timer1_start(void);
+void timer1_stop(void);
+void timer1_reload(uint16_t val);
+
+void timer0_init(void);
+void timer0_start(void);
+void timer0_stop(void);
+void timer0_reload(uint8_t val);
 
 #endif /* __TIMER_H__ */

@@ -48,7 +48,7 @@ sys_runstate_t _g_rs;
 FILE uart_str = FDEV_SETUP_STREAM(print_char, NULL, _FDEV_SETUP_RW);
 
 static void io_init(void);
-static void check_mains(void *param);
+static void test_1s(void *param);
 
 int main(void)
 {
@@ -71,8 +71,10 @@ int main(void)
 
     CLRWDT();
 
-    stepper_init(config->step_delay_ms);
-    timeout_create(1000, true, true, &check_mains, (void *)rs);
+    stepper_init(config->step_delay_01ms);
+    timeout_init();
+
+    //timeout_create(1000, true, true, &test_1s, (void *)rs);
 
     // Idle loop
     for (;;)
@@ -86,7 +88,6 @@ int main(void)
 
 static void io_init(void)
 {
-
 #ifdef _LEONARDO_
 #if 0
     DDRE &= ~_BV(PE6); // INT6
@@ -105,6 +106,7 @@ static void io_init(void)
 #endif
 }
 
-static void check_mains(void *param)
+static void test_1s(void *param)
 {
+    printf("one second\r\n");
 }

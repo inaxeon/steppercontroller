@@ -59,6 +59,7 @@
 
 #define PARAM_U8              0
 #define PARAM_U16             1
+#define PARAM_U16_F10         2
 
 #define CMD_MAX_CONSOLE       1
 #define CMD_MAX_LINE          64
@@ -95,12 +96,18 @@ static void do_help(void)
         "\t\tLoad the default configuration\r\n\r\n"
         "\tsave\r\n"
         "\t\tSave current configuration\r\n\r\n"
-        "\tstepdelay [1-100]\r\n"
+        "\tstepdelay [0.1-16]\r\n"
         "\t\tStep delay in milliseconds\r\n\r\n"
         "\tforward|f [numsteps]\r\n"
         "\t\tStep forward n number of steps\r\n\r\n"
         "\treverse|r [numsteps]\r\n"
         "\t\tStep in reverse n number of steps\r\n\r\n"
+        "\tforwardcont|fc\r\n"
+        "\t\tStart continuous stepping in forward direction\r\n\r\n"
+        "\treversecont|rc\r\n"
+        "\t\tStart continuous stepping in reverse direction\r\n\r\n"
+        "\tstopcont|sc\r\n"
+        "\t\tStop continous stepping\r\n\r\n"
         "\tsinglestep\r\n"
         "\t\tEnter single step mode\r\n\r\n"
     );
@@ -110,9 +117,9 @@ static void do_show(sys_config_t *config)
 {
     printf(
             "\r\nCurrent configuration:\r\n\r\n"
-            "\tstepdelay ...........: %u\r\n"
+            "\tstepdelay ...........: %.1f\r\n"
             "\r\n",
-            config->step_delay_ms
+            (float)config->step_delay_01ms / 10
     );
 }
 
@@ -144,6 +151,21 @@ static bool command_prompt_handler(char *text, sys_config_t *config)
         stepper_move_fixed_count(STEP_REVERSE, numsteps);
         return true;
     }
+    if (!stricmp(command, "forwardcont") || !stricmp(command, "fc"))
+    {
+        stepper_start_continous(STEP_FORWARD);
+        return true;
+    }
+    else if (!stricmp(command, "reversecont") || !stricmp(command, "rc"))
+    {
+        stepper_start_continous(STEP_REVERSE);
+        return true;
+    }
+    else if (!stricmp(command, "stopcont") || !stricmp(command, "sc"))
+    {
+        stepper_stop_continous();
+        return true;
+    }
     else if (!stricmp(command, "singlestep"))
     {
         do_singlestep();
@@ -151,8 +173,18 @@ static bool command_prompt_handler(char *text, sys_config_t *config)
     }
     else if (!stricmp(command, "stepdelay"))
     {
-        bool ret = parse_param(&config->step_delay_ms, PARAM_U16, arg);
-        stepper_set_delay(config->step_delay_ms);
+        uint16_t intervals = 0;
+        bool ret = parse_param(&intervals, PARAM_U16_F10, arg);
+
+        if (intervals > MAX_STEP_INTERVALS || intervals < 1)
+        {
+            printf("Error: Invalid parameter\r\n");
+            return false;
+        }
+
+        stepper_set_delay(intervals);
+        config->step_delay_01ms = intervals;
+
         return ret;
     }
     else if (!stricmp(command, "show"))
@@ -241,6 +273,12 @@ static bool parse_param(void *param, uint8_t type, char *arg)
         if (*arg == '-')
             return false;
         u16param = (uint16_t)atoi(arg);
+        *(uint16_t *)param = u16param;
+        break;
+    case PARAM_U16_F10:
+    if (*arg == '-')
+            return false;
+        u16param = (uint16_t)(atof(arg) * 10);
         *(uint16_t *)param = u16param;
         break;
     }
@@ -347,44 +385,44 @@ void cmd_process_state(sys_config_t *config)
             if (ccmd->count > 0)
             {
                 int8_t tostore = -1;
-				bool ret;
+                bool ret;
 
-				if (ccmd->next_history >= CMD_MAX_HISTORY)
-					ccmd->next_history = 0;
-				else
-					ccmd->max_history++;
+                if (ccmd->next_history >= CMD_MAX_HISTORY)
+                    ccmd->next_history = 0;
+                else
+                    ccmd->max_history++;
 
-				for (i = 0; i < CMD_MAX_HISTORY; i++)
-				{
-					if (!strcasecmp(ccmd->cmd_history[i], ccmd->cmd_buf))
-					{
-						tostore = i;
-						break;
-					}
-				}
+                for (i = 0; i < CMD_MAX_HISTORY; i++)
+                {
+                    if (!strcasecmp(ccmd->cmd_history[i], ccmd->cmd_buf))
+                    {
+                        tostore = i;
+                        break;
+                    }
+                }
 
-				if (tostore < 0)
-				{
-					// Don't have this command in history. Store it
-					strcpy(ccmd->cmd_history[ccmd->next_history], ccmd->cmd_buf);
-					ccmd->next_history++;
-					ccmd->show_history = ccmd->next_history;
-				}
-				else
-				{
-					// Already have this command in history, set the 'up' arrow to retrieve it.
-					tostore++;
+                if (tostore < 0)
+                {
+                    // Don't have this command in history. Store it
+                    strcpy(ccmd->cmd_history[ccmd->next_history], ccmd->cmd_buf);
+                    ccmd->next_history++;
+                    ccmd->show_history = ccmd->next_history;
+                }
+                else
+                {
+                    // Already have this command in history, set the 'up' arrow to retrieve it.
+                    tostore++;
 
-					if (tostore == CMD_MAX_HISTORY)
-						tostore = 0;
+                    if (tostore == CMD_MAX_HISTORY)
+                        tostore = 0;
 
-					ccmd->show_history = tostore;
-				}
+                    ccmd->show_history = tostore;
+                }
                 
                 ret = command_prompt_handler(ccmd->cmd_buf, config);
 
                 if (!ret)
-					printf("Error: Command failed\r\n");
+                    printf("Error: Command failed\r\n");
             }
             
             cmd_prompt(ccmd);
@@ -474,14 +512,14 @@ void cmd_process_char(uint8_t c, uint8_t idx)
         if (c == CTL_XOFF) /* Swallow XOFF */
             return;
         
-		if (c == CTL_U) {
-			if (ccmd->count) {
-				cmd_erase_line(ccmd);
-				*(ccmd->cmd_buf) = 0;
-				ccmd->count = 0;
-			}
-			return;
-		}
+        if (c == CTL_U) {
+            if (ccmd->count) {
+                cmd_erase_line(ccmd);
+                *(ccmd->cmd_buf) = 0;
+                ccmd->count = 0;
+            }
+            return;
+        }
 
         if (c == SEQ_ESCAPE_CHAR) {
             ccmd->state = CMD_ESCAPE;

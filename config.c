@@ -48,7 +48,7 @@ void load_configuration(sys_config_t *config)
 void default_configuration(sys_config_t *config)
 {
     config->magic = CONFIG_MAGIC;
-    config->step_delay_ms = 50;
+    config->step_delay_01ms = 50;
 }
 
 void save_configuration(sys_config_t *config)

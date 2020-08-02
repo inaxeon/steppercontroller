@@ -38,9 +38,13 @@
 #define DIRB_PORT IO13_PORT
 #define DIRB      IO13
 
+#define MAX_STEP_INTERVALS  160
+
 void stepper_init(uint16_t delay);
 void stepper_set_delay(uint16_t delay);
-void stepper_move_fixed_count(uint8_t dir, uint16_t steps);
+bool stepper_move_fixed_count(uint8_t dir, uint16_t steps);
+void stepper_start_continous(uint8_t dir);
+void stepper_stop_continous(void);
 uint8_t stepper_get_phase(void);
 
 #endif /* __STEPPER_H__ */

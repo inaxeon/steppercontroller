@@ -26,17 +26,49 @@
 void timer1_init(void)
 {
     TCCR1A = 0x00;
-    // CLK(i/o) prescaler 256
-    TCCR1B |= (1 << CS12);
-    TCCR1B &= ~(1 << CS11);
-    TCCR1B &= ~(1 << CS10);
-    //TCCR1B |= (1 << CS10);
 
-    TIMSK1 |= (1 << TOIE1);
+    // CLK(i/o) prescaler 8
+    TCCR1B &= ~_BV(CS12);
+    TCCR1B |= _BV(CS11);
+    TCCR1B &= ~_BV(CS10);
+}
 
-    TCNT1H = 0xFF;
-    TCNT1L = 0xFF;
+void timer1_start(void)
+{
+    TIMSK1 |= _BV(TOIE1);
+}
 
-    // Note to self: AVR Timers do not seem to have a 'go' bit
-    // They're always going...
+void timer1_stop()
+{
+    TIMSK1 &= ~_BV(TOIE1);
+}
+
+void timer1_reload(uint16_t val)
+{
+    TCNT1 = val;
+}
+
+void timer0_init(void)
+{
+    TCCR0A = 0x00;
+
+    // CLK(i/o) prescaler 1024
+    TCCR0B |= _BV(CS02);
+    TCCR0B &= ~_BV(CS01);
+    TCCR0B |= _BV(CS00);
+}
+
+void timer0_start(void)
+{
+    TIMSK0 |= _BV(TOIE0);
+}
+
+void timer0_stop()
+{
+    TIMSK0 &= ~_BV(TOIE0);
+}
+
+void timer0_reload(uint8_t val)
+{
+    TCNT0 = val;
 }
