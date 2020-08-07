@@ -33,6 +33,7 @@
 
 static uint8_t _g_step_phase;
 static uint16_t _g_delay;
+static uint16_t _g_pwm;
 static uint8_t _g_last_dir;
 static uint8_t _g_timer_reload;
 static uint8_t _g_cont_step_dir;
@@ -40,14 +41,22 @@ static bool _g_contstep_running;
 
 static void stepper_shift_phase(uint8_t dir);
 static void stepper_step(uint8_t phase);
+static void stepper_single_step(uint8_t phase);
+static void stepper_update_duty(uint8_t duty);
+
+#define ASSERT_ENABLE_A() if (_g_pwm < 255) TCCR2A |= _BV(COM2B1); else IO_HIGH(ENA)
+#define ASSERT_ENABLE_B() if (_g_pwm < 255) TCCR2A |= _BV(COM2A1); else IO_HIGH(ENB)
+
+#define DEASSERT_ENABLE_A() TCCR2A &= ~_BV(COM2B1); IO_LOW(ENA)
+#define DEASSERT_ENABLE_B() TCCR2A &= ~_BV(COM2A1); IO_LOW(ENB)
 
 ISR(TIMER0_OVF_vect)
 {
     if (!_g_contstep_running)
     {
         timer0_stop();
-        IO_LOW(ENA);
-        IO_LOW(ENB);
+        DEASSERT_ENABLE_A();
+        DEASSERT_ENABLE_B();
     }
 
     stepper_shift_phase(_g_cont_step_dir);
@@ -55,7 +64,7 @@ ISR(TIMER0_OVF_vect)
     timer0_reload(_g_timer_reload);
 }
 
-void stepper_init(uint16_t delay)
+void stepper_init(uint16_t delay, uint8_t pwm_duty)
 {
     IO_OUTPUT(ENA);
     IO_OUTPUT(ENB);
@@ -68,7 +77,45 @@ void stepper_init(uint16_t delay)
     _g_contstep_running = false;
 
     stepper_set_delay(delay);
+    stepper_set_duty(pwm_duty);
     timer0_init();
+
+    // set none-inverting mode
+    TCCR2A |= _BV(WGM21) | _BV(WGM20);
+
+    // set prescaler to 8 and starts PWM
+    TCCR2B |= _BV(CS20);
+}
+
+void stepper_set_duty(uint8_t duty)
+{
+    _g_pwm = duty;
+
+    if (_g_contstep_running)
+        stepper_update_duty(_g_pwm);
+}
+
+static void stepper_update_duty(uint8_t duty)
+{
+    if (duty == 255)
+    {
+        IO_HIGH(ENA);
+        IO_HIGH(ENB);
+
+        TCCR2A &= ~_BV(COM2B1);
+        TCCR2A &= ~_BV(COM2A1); 
+    }
+    else
+    {
+        IO_LOW(ENA);
+        IO_LOW(ENB);
+
+        TCCR2A |= _BV(COM2B1);
+        TCCR2A |= _BV(COM2A1); 
+
+        OCR2A = duty;
+        OCR2B = duty;
+    }
 }
 
 void stepper_set_delay(uint16_t delay)
@@ -110,8 +157,14 @@ bool stepper_move_fixed_count(uint8_t dir, uint16_t steps)
     if (_g_contstep_running)
         return false;
 
-    IO_HIGH(ENA);
-    IO_HIGH(ENB);
+    stepper_update_duty(_g_pwm);
+
+    ASSERT_ENABLE_A();
+    ASSERT_ENABLE_B();
+
+#ifdef _TWOSTEP_
+    steps *= 2;
+#endif
 
     for (uint16_t i = 0; i < steps; i++)
     {
@@ -126,8 +179,23 @@ bool stepper_move_fixed_count(uint8_t dir, uint16_t steps)
             _delay_us(100);
     }
 
-    IO_LOW(ENA);
-    IO_LOW(ENB);
+    DEASSERT_ENABLE_A();
+    DEASSERT_ENABLE_B();
+
+    return true;
+}
+
+bool stepper_move_single_step(uint8_t dir)
+{
+    if (_g_contstep_running)
+        return false;
+
+#ifdef _TWOSTEP_
+    steps *= 2;
+#endif
+
+    stepper_shift_phase(dir);
+    stepper_single_step(_g_step_phase);
 
     return true;
 }
@@ -137,8 +205,10 @@ void stepper_start_continous(uint8_t dir)
     _g_cont_step_dir = dir;
     _g_contstep_running = true;
 
-    IO_HIGH(ENA);
-    IO_HIGH(ENB);
+    stepper_update_duty(_g_pwm);
+
+    ASSERT_ENABLE_A();
+    ASSERT_ENABLE_B();
 
     if (dir == _g_last_dir)
         stepper_shift_phase(dir);
@@ -178,4 +248,34 @@ static void stepper_step(uint8_t phase)
             IO_LOW(DIRB);
             break;
     }
+}
+
+static void stepper_single_step(uint8_t phase)
+{
+    switch (phase)
+    {
+        case 0:
+            IO_HIGH(DIRA);
+            IO_HIGH(ENA);
+            break;
+        case 1:
+            IO_LOW(DIRB);
+            IO_HIGH(ENB);
+            break;
+        case 2:
+            IO_LOW(DIRA);
+            IO_HIGH(ENA);
+            break;
+        case 3:
+            IO_HIGH(DIRB);
+            IO_HIGH(ENB);
+            break;
+    }
+
+    _delay_ms(50);
+
+    IO_LOW(ENA);
+    IO_LOW(ENB);
+
+    _delay_ms(15);
 }

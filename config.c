@@ -49,6 +49,7 @@ void default_configuration(sys_config_t *config)
 {
     config->magic = CONFIG_MAGIC;
     config->step_delay_01ms = 50;
+    config->pwm_duty = 255;
 }
 
 void save_configuration(sys_config_t *config)

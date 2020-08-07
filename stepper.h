@@ -40,9 +40,11 @@
 
 #define MAX_STEP_INTERVALS  160
 
-void stepper_init(uint16_t delay);
+void stepper_init(uint16_t delay, uint8_t pwm_duty);
 void stepper_set_delay(uint16_t delay);
+void stepper_set_duty(uint8_t duty);
 bool stepper_move_fixed_count(uint8_t dir, uint16_t steps);
+bool stepper_move_single_step(uint8_t dir);
 void stepper_start_continous(uint8_t dir);
 void stepper_stop_continous(void);
 uint8_t stepper_get_phase(void);

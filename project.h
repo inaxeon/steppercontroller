@@ -31,6 +31,7 @@
 #define g_irq_disable cli
 #define g_irq_enable sei
 
+//#define _TWOSTEP_
 
 #define UART1_BAUD           9600
 

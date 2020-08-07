@@ -96,8 +96,10 @@ static void do_help(void)
         "\t\tLoad the default configuration\r\n\r\n"
         "\tsave\r\n"
         "\t\tSave current configuration\r\n\r\n"
-        "\tstepdelay [0.1-16]\r\n"
+        "\tstepdelay|sd [0.1-16]\r\n"
         "\t\tStep delay in milliseconds\r\n\r\n"
+        "\tpwmduty|p [0-255]\r\n"
+        "\t\tPWM duty for motor\r\n\r\n"
         "\tforward|f [numsteps]\r\n"
         "\t\tStep forward n number of steps\r\n\r\n"
         "\treverse|r [numsteps]\r\n"
@@ -108,7 +110,7 @@ static void do_help(void)
         "\t\tStart continuous stepping in reverse direction\r\n\r\n"
         "\tstopcont|sc\r\n"
         "\t\tStop continous stepping\r\n\r\n"
-        "\tsinglestep\r\n"
+        "\tsinglestep|ss\r\n"
         "\t\tEnter single step mode\r\n\r\n"
     );
 }
@@ -118,8 +120,10 @@ static void do_show(sys_config_t *config)
     printf(
             "\r\nCurrent configuration:\r\n\r\n"
             "\tstepdelay ...........: %.1f\r\n"
+            "\tpwmduty .............: %u\r\n"
             "\r\n",
-            (float)config->step_delay_01ms / 10
+            (float)config->step_delay_01ms / 10,
+            config->pwm_duty
     );
 }
 
@@ -131,24 +135,35 @@ static bool command_prompt_handler(char *text, sys_config_t *config)
     command = strtok(text, " ");
     arg = strtok(NULL, "");
 
-    if (!stricmp(command, "forward") || !stricmp(command, "f"))
+    if (!stricmp(command, "forward") || !stricmp(command, "f") || !stricmp(command, "d"))
     {
         uint16_t numsteps;
+        uint8_t ret;
         
         if (!parse_param(&numsteps, PARAM_U16, arg))
             return false;
         
-        stepper_move_fixed_count(STEP_FORWARD, numsteps);
-        return true;
+        ret = stepper_move_fixed_count(STEP_FORWARD, numsteps);
+
+        if (ret)
+            printf("%u\r\n", stepper_get_phase() + 1);
+
+        return ret;
     }
-    else if (!stricmp(command, "reverse") || !stricmp(command, "r"))
+    else if (!stricmp(command, "reverse") || !stricmp(command, "r") || !stricmp(command, "u"))
     {
         uint16_t numsteps;
+        uint8_t ret;
         
         if (!parse_param(&numsteps, PARAM_U16, arg))
             return false;
         
-        return stepper_move_fixed_count(STEP_REVERSE, numsteps);
+        ret = stepper_move_fixed_count(STEP_REVERSE, numsteps);
+
+        if (ret)
+            printf("%u\r\n", stepper_get_phase() + 1);
+
+        return ret;
     }
     if (!stricmp(command, "forwardcont") || !stricmp(command, "fc"))
     {
@@ -165,12 +180,12 @@ static bool command_prompt_handler(char *text, sys_config_t *config)
         stepper_stop_continous();
         return true;
     }
-    else if (!stricmp(command, "singlestep"))
+    else if (!stricmp(command, "singlestep") || !stricmp(command, "ss"))
     {
         do_singlestep();
         return true;
     }
-    else if (!stricmp(command, "stepdelay"))
+    else if (!stricmp(command, "stepdelay") || !stricmp(command, "sd"))
     {
         uint16_t intervals = 0;
         bool ret = parse_param(&intervals, PARAM_U16_F10, arg);
@@ -184,6 +199,12 @@ static bool command_prompt_handler(char *text, sys_config_t *config)
         stepper_set_delay(intervals);
         config->step_delay_01ms = intervals;
 
+        return ret;
+    }
+    else if (!stricmp(command, "pwmduty") || !stricmp(command, "pwm") || !stricmp(command, "p"))
+    {
+        uint8_t ret = parse_param(&config->pwm_duty, PARAM_U8, arg);
+        stepper_set_duty(config->pwm_duty);
         return ret;
     }
     else if (!stricmp(command, "show"))
@@ -232,12 +253,18 @@ static void do_singlestep(void)
             {
                 case 'w':
                 case 'W':
-                    stepper_move_fixed_count(STEP_REVERSE, 1);
+                    stepper_move_single_step(STEP_REVERSE);
+                    #ifdef _TWOSTEP_
+                    stepper_move_single_step(STEP_REVERSE);
+                    #endif
                     printf("%u ", stepper_get_phase());
                     break;
                 case 'e':
                 case 'E':
-                    stepper_move_fixed_count(STEP_FORWARD, 1);
+                    stepper_move_single_step(STEP_FORWARD);
+                    #ifdef _TWOSTEP_
+                    stepper_move_single_step(STEP_FORWARD);
+                    #endif
                     printf("%u ", stepper_get_phase());
                     break;
                 case 'q':
