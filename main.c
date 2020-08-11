@@ -79,7 +79,7 @@ int main(void)
     // Idle loop
     for (;;)
     {
-        timeout_check();
+        //timeout_check();
         cmd_process(config);
         CLRWDT();
     }
