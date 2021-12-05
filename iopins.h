@@ -272,4 +272,130 @@
 
 #endif
 
+#if defined(_UNO_) || defined(_LEONARDO_)
+
+#define ENA_DDR   IO3_DDR
+#define ENA_PORT  IO3_PORT
+#define ENA       IO3
+
+#define ENB_DDR   IO11_DDR
+#define ENB_PORT  IO11_PORT
+#define ENB       IO11
+
+#define DIRA_DDR  IO12_DDR
+#define DIRA_PORT IO12_PORT
+#define DIRA      IO12
+
+#define DIRB_DDR  IO13_DDR
+#define DIRB_PORT IO13_PORT
+#define DIRB      IO13
+
+#endif /* defined(_UNO_) || defined(_LEONARDO_) */
+
+#ifdef _AVR_FANSPEED_BOARD_
+
+#define FHDR_SPARE1        PC2
+#define FHDR_SPARE2        PC3
+#define ENA                PB1
+#define ENB                PB2
+#define DIRA               PD7
+#define DIRB               PD4
+#define ONEWIRE            PC1
+#define START              PB0 //PCINT0
+#define SP2                PD5 //PCINT21
+#define SP3                PD6 //PCINT22
+#define BOTTOM             PC0 //PCINT8
+#define TOP                PD3 //PCINT19
+#define SP6                PD2 //PCINT18
+
+#define FHDR_SPARE1_PIN    PINC
+#define FHDR_SPARE2_PIN    PINC
+#define ENA_PIN            PINB
+#define ENB_PIN            PINB
+#define DIRA_PIN           PIND
+#define DIRB_PIN           PIND
+#define ONEWIRE_PIN        PINC
+#define START_PIN          PINB
+#define SP2_PIN            PIND
+#define SP3_PIN            PIND
+#define BOTTOM_PIN         PINC
+#define TOP_PIN            PIND
+#define SP6_PIN            PIND
+
+#define FHDR_SPARE1_PORT   PORTC
+#define FHDR_SPARE2_PORT   PORTC
+#define ENA_PORT           PORTB
+#define ENB_PORT           PORTB
+#define DIRA_PORT          PORTD
+#define DIRB_PORT          PORTD
+#define ONEWIRE_PORT       PORTC
+#define START_PORT         PORTB
+#define SP2_PORT           PORTD
+#define SP3_PORT           PORTD
+#define BOTTOM_PORT        PORTC
+#define TOP_PORT           PORTD
+#define SP6_PORT           PORTD
+
+#define FHDR_SPARE1_DDR    DDRC
+#define FHDR_SPARE2_DDR    DDRC
+#define ENA_DDR            DDRB
+#define ENB_DDR            DDRB
+#define DIRA_DDR           DDRD
+#define DIRB_DDR           DDRD
+#define ONEWIRE_DDR        DDRC
+#define START_DDR          DDRB
+#define SP2_DDR            DDRD
+#define SP3_DDR            DDRD
+#define BOTTOM_DDR         DDRC
+#define TOP_DDR            DDRD
+#define SP6_DDR            DDRD
+
+#define SDA_DDR            PORTC
+#define SDA_PIN            PINC
+#define SDA_PORT           PORTC
+#define SDA                PC4
+
+#define SCL_DDR            PORTC
+#define SCL_PIN            PINC
+#define SCL_PORT           PORTC
+#define SCL                PC5
+
+#define USART1_DDR         DDRD
+#define USART1_TX          PD1
+#define USART1_RX          PD0
+#define USART1_XCK         PD4
+
+#define SPI_DDR            DDRB
+#define SPI_PORT           PORTB
+#define SPI_MISO           PB4
+#define SPI_MOSI           PB2
+#define SPI_SCK            PB5
+
+#if defined(__AVR_ATmega328__) || defined(__AVR_ATmega328P__)
+
+#define UCSRAA             UCSR0A
+#define UCSRAB             UCSR0B
+#define UCSRAC             UCSR0C
+#define UBRRAL             UBRR0L
+#define UBRRAH             UBRR0H
+#define UDRIEA             UDRIE0
+#define UCSZA0             UCSZ00
+#define UCSZA1             UCSZ01
+#define UCSZA2             UCSZ02
+#define RXCIEA             RXCIE0
+#define RXENA              RXEN0
+#define TXENA              TXEN0
+#define UMSELA0            UMSEL00
+#define UDREA              UDRE0
+#define UDRA               UDR0
+#define DORA               DOR0
+#define FEA                FE0
+
+#define USARTA_RX_vect     USART_RX_vect
+#define USARTA_UDRE_vect   USART_UDRE_vect
+
+#endif /* __AVR_ATmega328P__ */
+
+#endif /* _AVR_FANSPEED_BOARD_ */
+
 #endif /* __IOPINS_H__ */

@@ -76,6 +76,12 @@ int main(void)
 
     //timeout_create(1000, true, true, &test_1s, (void *)rs);
 
+    if (config->start_mode == 1)
+        stepper_start_continous(STEP_FORWARD);
+
+    if (config->start_mode == 2)
+        stepper_start_continous(STEP_REVERSE);
+
     // Idle loop
     for (;;)
     {

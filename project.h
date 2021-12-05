@@ -22,8 +22,6 @@
 
 #define _USART1_
 
-#define F_CPU      16000000
-
 #define CONFIG_MAGIC        0x5343
 
 #define CLRWDT() asm("wdr")

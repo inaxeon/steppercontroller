@@ -7,9 +7,8 @@
 ##############################################################################
 
 # Fixes clash between windows and coreutils mkdir. Comment out the below line to compile on Linux
-COREUTILS  = C:/Projects/coreutils/bin/
+COREUTILS  = C:/Dev/compilers/coreutils/bin/
 
-CLOCK      = 16000000
 SRCS       = main.c cmd.c config.c util.c timeout.c timer.c usart_buffered.c stepper.c
 OBJS       = $(SRCS:.c=.o)
 DEPDIR     = deps
@@ -19,14 +18,24 @@ MV         = mv
 MKDIR      = $(COREUTILS)mkdir
 LDFLAGS    = -Wl,-u,vfprintf -lprintf_flt -lm
 
-ifeq ($(ARDUINO), LEONARDO)
+ifeq ($(BOARD), LEONARDO)
 DEVICE     = atmega32u4
 CFLAGS     = -D_LEONARDO_
 PROGRAMMER = -c arduino -P COM6 -c avr109 -b 57600 
-else
+CLOCK      = 16000000
+endif
+ifeq ($(BOARD), UNO)
 DEVICE     = atmega328p
 CFLAGS     = -D_UNO_
 PROGRAMMER = -P COM5 -c arduino -b 115200  
+CLOCK      = 16000000
+endif
+ifeq ($(BOARD), FANSPEED)
+DEVICE     = atmega328
+CFLAGS     = -D_AVR_FANSPEED_BOARD_
+PROGRAMMER = -c stk500v2 -P COM1
+FUSES      = -U lfuse:w:0xDF:m -U hfuse:w:0xD1:m -U efuse:w:0xFC:m
+CLOCK      = 14745600
 endif
 
 POSTCOMPILE = $(MV) $(DEPDIR)/$*.Td $(DEPDIR)/$*.d && touch $@

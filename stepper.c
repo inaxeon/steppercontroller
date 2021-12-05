@@ -44,11 +44,24 @@ static void stepper_step(uint8_t phase);
 static void stepper_single_step(uint8_t phase);
 static void stepper_update_duty(uint8_t duty);
 
+#ifdef _AVR_FANSPEED_BOARD_
+
+#define ASSERT_ENABLE_A() if (_g_pwm < 255) TCCR1A |= _BV(COM1B1); else IO_HIGH(ENA)
+#define ASSERT_ENABLE_B() if (_g_pwm < 255) TCCR1A |= _BV(COM1A1); else IO_HIGH(ENB)
+
+#define DEASSERT_ENABLE_A() TCCR1A &= ~_BV(COM1B1); IO_LOW(ENA)
+#define DEASSERT_ENABLE_B() TCCR1A &= ~_BV(COM1A1); IO_LOW(ENB)
+
+#else
+
 #define ASSERT_ENABLE_A() if (_g_pwm < 255) TCCR2A |= _BV(COM2B1); else IO_HIGH(ENA)
 #define ASSERT_ENABLE_B() if (_g_pwm < 255) TCCR2A |= _BV(COM2A1); else IO_HIGH(ENB)
 
 #define DEASSERT_ENABLE_A() TCCR2A &= ~_BV(COM2B1); IO_LOW(ENA)
 #define DEASSERT_ENABLE_B() TCCR2A &= ~_BV(COM2A1); IO_LOW(ENB)
+
+#endif /* !_AVR_FANSPEED_BOARD_ */
+
 
 ISR(TIMER0_OVF_vect)
 {
@@ -80,11 +93,15 @@ void stepper_init(uint16_t delay, uint8_t pwm_duty)
     stepper_set_duty(pwm_duty);
     timer0_init();
 
+#ifdef _AVR_FANSPEED_BOARD_
+    TCCR1A = _BV(WGM11);
+    TCCR1B = _BV(WGM12) | _BV(CS10);
+#else
     // set none-inverting mode
     TCCR2A |= _BV(WGM21) | _BV(WGM20);
-
     // set prescaler to 8 and starts PWM
     TCCR2B |= _BV(CS20);
+#endif /* !_AVR_FANSPEED_BOARD_ */
 }
 
 void stepper_set_duty(uint8_t duty)
@@ -97,6 +114,30 @@ void stepper_set_duty(uint8_t duty)
 
 static void stepper_update_duty(uint8_t duty)
 {
+#ifdef _AVR_FANSPEED_BOARD_
+    uint16_t duty16 = duty;
+    duty *= 2;
+    duty += 2;
+    if (duty16 >= 0x200)
+    {
+        IO_HIGH(ENA);
+        IO_HIGH(ENB);
+
+        TCCR1A &= ~_BV(COM1B1);
+        TCCR1A &= ~_BV(COM1A1); 
+    }
+    else
+    {
+        IO_LOW(ENA);
+        IO_LOW(ENB);
+
+        TCCR1A |= _BV(COM1B1);
+        TCCR1A |= _BV(COM1A1); 
+
+        OCR1A = duty16;
+        OCR1B = duty16;
+    }
+#else
     if (duty == 255)
     {
         IO_HIGH(ENA);
@@ -116,6 +157,7 @@ static void stepper_update_duty(uint8_t duty)
         OCR2A = duty;
         OCR2B = duty;
     }
+#endif /* _AVR_FANSPEED_BOARD_ */
 }
 
 void stepper_set_delay(uint16_t delay)

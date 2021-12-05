@@ -112,6 +112,8 @@ static void do_help(void)
         "\t\tStop continous stepping\r\n\r\n"
         "\tsinglestep|ss\r\n"
         "\t\tEnter single step mode\r\n\r\n"
+        "\tstartmode|ss\r\n"
+        "\t\tStartup mode. 0 = off. 1 = foward cont. 2 = reverse cont.\r\n\r\n"
     );
 }
 
@@ -121,9 +123,11 @@ static void do_show(sys_config_t *config)
             "\r\nCurrent configuration:\r\n\r\n"
             "\tstepdelay ...........: %.1f\r\n"
             "\tpwmduty .............: %u\r\n"
+            "\tstartmode ...........: %u\r\n"
             "\r\n",
             (float)config->step_delay_01ms / 10,
-            config->pwm_duty
+            config->pwm_duty,
+            config->start_mode
     );
 }
 
@@ -205,6 +209,11 @@ static bool command_prompt_handler(char *text, sys_config_t *config)
     {
         uint8_t ret = parse_param(&config->pwm_duty, PARAM_U8, arg);
         stepper_set_duty(config->pwm_duty);
+        return ret;
+    }
+    else if (!stricmp(command, "startmode"))
+    {
+        uint8_t ret = parse_param(&config->start_mode, PARAM_U8, arg);
         return ret;
     }
     else if (!stricmp(command, "show"))

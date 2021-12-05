@@ -22,22 +22,6 @@
 #define STEP_FORWARD    0
 #define STEP_REVERSE    1
 
-#define ENA_DDR   IO3_DDR
-#define ENA_PORT  IO3_PORT
-#define ENA       IO3
-
-#define ENB_DDR   IO11_DDR
-#define ENB_PORT  IO11_PORT
-#define ENB       IO11
-
-#define DIRA_DDR  IO12_DDR
-#define DIRA_PORT IO12_PORT
-#define DIRA      IO12
-
-#define DIRB_DDR  IO13_DDR
-#define DIRB_PORT IO13_PORT
-#define DIRB      IO13
-
 #define MAX_STEP_INTERVALS  160
 
 void stepper_init(uint16_t delay, uint8_t pwm_duty);
