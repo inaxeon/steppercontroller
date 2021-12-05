@@ -117,8 +117,7 @@ static void stepper_update_duty(uint8_t duty)
 #ifdef _AVR_FANSPEED_BOARD_
     uint16_t duty16 = duty;
     duty *= 2;
-    duty += 2;
-    if (duty16 >= 0x200)
+    if (duty16 == 510)
     {
         IO_HIGH(ENA);
         IO_HIGH(ENB);

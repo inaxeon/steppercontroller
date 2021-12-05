@@ -112,7 +112,7 @@ static void do_help(void)
         "\t\tStop continous stepping\r\n\r\n"
         "\tsinglestep|ss\r\n"
         "\t\tEnter single step mode\r\n\r\n"
-        "\tstartmode|ss\r\n"
+        "\tstartmode\r\n"
         "\t\tStartup mode. 0 = off. 1 = foward cont. 2 = reverse cont.\r\n\r\n"
     );
 }
