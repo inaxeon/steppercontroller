@@ -207,6 +207,8 @@ static bool command_prompt_handler(char *text, sys_config_t *config)
     else if (!stricmp(command, "stopcont") || !stricmp(command, "sc"))
     {
         stepper_stop_continous();
+        uint16_t rotations = stepper_get_rotations();
+        printf("Rotations: %u\r\n", rotations);
         return true;
     }
     else if (!stricmp(command, "singlestep") || !stricmp(command, "ss"))

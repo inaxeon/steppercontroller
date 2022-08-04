@@ -39,6 +39,7 @@ static uint8_t _g_timer_reload;
 static uint8_t _g_cont_step_dir;
 static bool _g_contstep_running;
 static uint16_t _g_fixed_rotations;
+static uint16_t _g_rotation_count;
 static uint8_t _g_step;
 
 static void stepper_shift_phase(uint8_t dir);
@@ -78,12 +79,14 @@ ISR(TIMER0_OVF_vect)
     stepper_step(_g_step_phase);
     timer0_reload(_g_timer_reload);
 
-    if (_g_fixed_rotations > 0)
+    _g_step++;
+    if (_g_step == 200)
     {
-        _g_step++;
-        if (_g_step == 200)
+        _g_step = 0;
+        _g_rotation_count++;
+
+        if (_g_fixed_rotations > 0)
         {
-            _g_step = 0;
             _g_fixed_rotations--;
             if (_g_fixed_rotations == 0)
                 _g_contstep_running = false;
@@ -260,6 +263,7 @@ void stepper_start_continous(uint8_t dir, uint16_t num_rotations)
     _g_cont_step_dir = dir;
     _g_contstep_running = true;
     _g_fixed_rotations = num_rotations;
+    _g_rotation_count = 0;
     _g_step = 0;
 
     stepper_update_duty(_g_pwm);
@@ -281,6 +285,11 @@ void stepper_start_continous(uint8_t dir, uint16_t num_rotations)
 void stepper_stop_continous(void)
 {
     _g_contstep_running = false;
+}
+
+uint16_t stepper_get_rotations(void)
+{
+    return _g_rotation_count;
 }
 
 static void stepper_step(uint8_t phase)
