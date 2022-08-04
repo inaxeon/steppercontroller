@@ -112,8 +112,8 @@ static void do_help(void)
         "\t\tStart stepping in forward direction for N rotations\r\n\r\n"
         "\treverserotations|rr [numrotations]\r\n"
         "\t\tStart stepping in reverse direction for N rotations\r\n\r\n"
-        "\tstopcont|sc\r\n"
-        "\t\tStop continous stepping\r\n\r\n"
+        "\tstop|s\r\n"
+        "\t\tStop stepping\r\n\r\n"
         "\tsinglestep|ss\r\n"
         "\t\tEnter single step mode\r\n\r\n"
         "\tstartmode\r\n"
@@ -204,11 +204,16 @@ static bool command_prompt_handler(char *text, sys_config_t *config)
         stepper_start_continous(STEP_REVERSE, numrotations);
         return true;
     }
-    else if (!stricmp(command, "stopcont") || !stricmp(command, "sc"))
+    else if (!stricmp(command, "stop") || !stricmp(command, "s"))
     {
         stepper_stop_continous();
-        uint16_t rotations = stepper_get_rotations();
-        printf("Rotations: %u\r\n", rotations);
+        uint16_t rotations;
+        uint8_t fraction;
+
+         stepper_get_rotations(&rotations, &fraction);
+
+        printf("Total rotations: %u.%u\r\n", rotations, fraction);
+
         return true;
     }
     else if (!stricmp(command, "singlestep") || !stricmp(command, "ss"))

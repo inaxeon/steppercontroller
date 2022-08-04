@@ -287,9 +287,10 @@ void stepper_stop_continous(void)
     _g_contstep_running = false;
 }
 
-uint16_t stepper_get_rotations(void)
+void stepper_get_rotations(uint16_t *rotations, uint8_t *fraction)
 {
-    return _g_rotation_count;
+    *rotations = _g_rotation_count;
+    *fraction = _g_step / 20;
 }
 
 static void stepper_step(uint8_t phase)
