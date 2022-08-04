@@ -108,6 +108,10 @@ static void do_help(void)
         "\t\tStart continuous stepping in forward direction\r\n\r\n"
         "\treversecont|rc\r\n"
         "\t\tStart continuous stepping in reverse direction\r\n\r\n"
+        "\tforwardrotations|fr [numrotations]\r\n"
+        "\t\tStart stepping in forward direction for N rotations\r\n\r\n"
+        "\treverserotations|rr [numrotations]\r\n"
+        "\t\tStart stepping in reverse direction for N rotations\r\n\r\n"
         "\tstopcont|sc\r\n"
         "\t\tStop continous stepping\r\n\r\n"
         "\tsinglestep|ss\r\n"
@@ -171,12 +175,33 @@ static bool command_prompt_handler(char *text, sys_config_t *config)
     }
     if (!stricmp(command, "forwardcont") || !stricmp(command, "fc"))
     {
-        stepper_start_continous(STEP_FORWARD);
+        stepper_start_continous(STEP_FORWARD, 0);
         return true;
     }
     else if (!stricmp(command, "reversecont") || !stricmp(command, "rc"))
     {
-        stepper_start_continous(STEP_REVERSE);
+        stepper_start_continous(STEP_REVERSE, 0);
+        return true;
+    }
+    if (!stricmp(command, "forwardrotations") || !stricmp(command, "fr"))
+    {
+        uint16_t numrotations;
+        
+        if (!parse_param(&numrotations, PARAM_U16, arg))
+            return false;
+
+        stepper_start_continous(STEP_FORWARD, numrotations);
+
+        return true;
+    }
+    else if (!stricmp(command, "reverserotations") || !stricmp(command, "rr"))
+    {
+        uint16_t numrotations;
+        
+        if (!parse_param(&numrotations, PARAM_U16, arg))
+            return false;
+
+        stepper_start_continous(STEP_REVERSE, numrotations);
         return true;
     }
     else if (!stricmp(command, "stopcont") || !stricmp(command, "sc"))

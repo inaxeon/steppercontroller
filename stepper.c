@@ -38,6 +38,8 @@ static uint8_t _g_last_dir;
 static uint8_t _g_timer_reload;
 static uint8_t _g_cont_step_dir;
 static bool _g_contstep_running;
+static uint16_t _g_fixed_rotations;
+static uint8_t _g_step;
 
 static void stepper_shift_phase(uint8_t dir);
 static void stepper_step(uint8_t phase);
@@ -75,6 +77,18 @@ ISR(TIMER0_OVF_vect)
     stepper_shift_phase(_g_cont_step_dir);
     stepper_step(_g_step_phase);
     timer0_reload(_g_timer_reload);
+
+    if (_g_fixed_rotations > 0)
+    {
+        _g_step++;
+        if (_g_step == 200)
+        {
+            _g_step = 0;
+            _g_fixed_rotations--;
+            if (_g_fixed_rotations == 0)
+                _g_contstep_running = false;
+        }
+    }
 }
 
 void stepper_init(uint16_t delay, uint8_t pwm_duty)
@@ -116,7 +130,7 @@ static void stepper_update_duty(uint8_t duty)
 {
 #ifdef _AVR_FANSPEED_BOARD_
     uint16_t duty16 = duty;
-    duty *= 2;
+    duty16 *= 2;
     if (duty16 == 510)
     {
         IO_HIGH(ENA);
@@ -241,10 +255,12 @@ bool stepper_move_single_step(uint8_t dir)
     return true;
 }
 
-void stepper_start_continous(uint8_t dir)
+void stepper_start_continous(uint8_t dir, uint16_t num_rotations)
 {
     _g_cont_step_dir = dir;
     _g_contstep_running = true;
+    _g_fixed_rotations = num_rotations;
+    _g_step = 0;
 
     stepper_update_duty(_g_pwm);
 
@@ -257,7 +273,6 @@ void stepper_start_continous(uint8_t dir)
     _g_last_dir = dir;
 
     stepper_step(_g_step_phase);
-
 
     timer0_reload(_g_timer_reload);
     timer0_start();
