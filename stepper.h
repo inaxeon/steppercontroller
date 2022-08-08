@@ -31,7 +31,8 @@ bool stepper_move_fixed_count(uint8_t dir, uint16_t steps);
 bool stepper_move_single_step(uint8_t dir);
 void stepper_start_continous(uint8_t dir, uint16_t num_rotations);
 void stepper_stop_continous(void);
-void stepper_get_rotations(uint16_t *rotations, uint8_t *fraction);
+void stepper_get_rotations(int16_t *rotations, uint8_t *fraction);
+void stepper_change_dir(void);
 uint8_t stepper_get_phase(void);
 
 #endif /* __STEPPER_H__ */

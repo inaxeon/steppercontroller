@@ -38,9 +38,8 @@ static uint8_t _g_last_dir;
 static uint8_t _g_timer_reload;
 static uint8_t _g_cont_step_dir;
 static bool _g_contstep_running;
-static uint16_t _g_fixed_rotations;
-static uint16_t _g_rotation_count;
-static uint8_t _g_step;
+static int32_t _g_fixed_steps;
+static int32_t _g_step_count;
 
 static void stepper_shift_phase(uint8_t dir);
 static void stepper_step(uint8_t phase);
@@ -79,18 +78,15 @@ ISR(TIMER0_OVF_vect)
     stepper_step(_g_step_phase);
     timer0_reload(_g_timer_reload);
 
-    _g_step++;
-    if (_g_step == 200)
-    {
-        _g_step = 0;
-        _g_rotation_count++;
+    if (_g_cont_step_dir == STEP_FORWARD)
+        _g_step_count++;
+    else
+        _g_step_count--;
 
-        if (_g_fixed_rotations > 0)
-        {
-            _g_fixed_rotations--;
-            if (_g_fixed_rotations == 0)
-                _g_contstep_running = false;
-        }
+    if (_g_fixed_steps != 0)
+    {
+        if (_g_fixed_steps == _g_step_count)
+            _g_contstep_running = false;
     }
 }
 
@@ -262,9 +258,11 @@ void stepper_start_continous(uint8_t dir, uint16_t num_rotations)
 {
     _g_cont_step_dir = dir;
     _g_contstep_running = true;
-    _g_fixed_rotations = num_rotations;
-    _g_rotation_count = 0;
-    _g_step = 0;
+    _g_fixed_steps = num_rotations * MOTOR_STEPS;
+    _g_step_count = 0;
+
+    if (dir == STEP_REVERSE)
+        _g_fixed_steps = -_g_fixed_steps;
 
     stepper_update_duty(_g_pwm);
 
@@ -287,10 +285,24 @@ void stepper_stop_continous(void)
     _g_contstep_running = false;
 }
 
-void stepper_get_rotations(uint16_t *rotations, uint8_t *fraction)
+void stepper_change_dir(void)
 {
-    *rotations = _g_rotation_count;
-    *fraction = _g_step / 20;
+    if (_g_cont_step_dir == STEP_FORWARD)
+        _g_cont_step_dir = STEP_REVERSE;
+    else if (_g_cont_step_dir == STEP_REVERSE)
+        _g_cont_step_dir = STEP_FORWARD;
+}
+
+void stepper_get_rotations(int16_t *rotations, uint8_t *fraction)
+{
+    int32_t pos_step_count = _g_step_count;
+
+    *rotations = _g_step_count / MOTOR_STEPS;
+    
+    if (pos_step_count < 0)
+        pos_step_count = -pos_step_count;
+
+    *fraction = (pos_step_count % 200) / 20;
 }
 
 static void stepper_step(uint8_t phase)

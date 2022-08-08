@@ -33,6 +33,8 @@
 
 #define UART1_BAUD           9600
 
+#define MOTOR_STEPS          200
+
 #define TIMEOUT_TICK_PER_SECOND  (100)
 #define TIMEOUT_MS_PER_TICK      (1000 / TIMEOUT_TICK_PER_SECOND)
 

@@ -37,9 +37,13 @@
 #include "timer.h"
 #include "stepper.h"
 
+#define F_CHANGE_DIR        0x01
+
 typedef struct
 {
     sys_config_t *config;
+    uint8_t runflags;
+    uint8_t last_portc;
 } sys_runstate_t;
 
 sys_config_t _g_cfg;
@@ -50,11 +54,23 @@ FILE uart_str = FDEV_SETUP_STREAM(print_char, NULL, _FDEV_SETUP_RW);
 static void io_init(void);
 //static void test_1s(void *param);
 
+ISR(PCINT1_vect)
+{
+    if (!(_g_rs.last_portc & _BV(PC1)) && (PINC & _BV(PC1)))
+    {
+        _g_rs.runflags |= F_CHANGE_DIR;
+        PCMSK1 &= ~_BV(PCINT9); // Disable interrupt
+    }
+
+    _g_rs.last_portc = PINC;
+}
+
 int main(void)
 {
     sys_runstate_t *rs = &_g_rs;
     sys_config_t *config = &_g_cfg;
     rs->config = config;
+    _g_rs.runflags = 0;
 
     io_init();
     g_irq_enable();
@@ -88,6 +104,16 @@ int main(void)
         //timeout_check();
         cmd_process(config);
         CLRWDT();
+
+        if (rs->runflags & F_CHANGE_DIR)
+        {
+            rs->runflags &= ~F_CHANGE_DIR;
+            stepper_change_dir();
+            _delay_ms(250);
+            _delay_ms(250);
+            PCIFR |= _BV(PCIE1);
+            PCMSK1 |= _BV(PCINT9);
+        }
     }
 }
 
@@ -98,6 +124,11 @@ static void io_init(void)
     // Disable USB, because the bootloader has probably left it on
     USBCON &= ~_BV(USBE);
 #endif
+
+    _g_rs.last_portc = PINC;
+
+    PCICR |= _BV(PCIE1);
+    PCMSK1 |= _BV(PCINT9);
 }
 
 // static void test_1s(void *param)

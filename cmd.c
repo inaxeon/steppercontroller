@@ -100,9 +100,9 @@ static void do_help(void)
         "\t\tStep delay in milliseconds\r\n\r\n"
         "\tpwmduty|p [0-255]\r\n"
         "\t\tPWM duty for motor\r\n\r\n"
-        "\tforward|f [numsteps]\r\n"
+        "\tforwardsteps|fs [numsteps]\r\n"
         "\t\tStep forward n number of steps\r\n\r\n"
-        "\treverse|r [numsteps]\r\n"
+        "\treversesteps|rs [numsteps]\r\n"
         "\t\tStep in reverse n number of steps\r\n\r\n"
         "\tforwardcont|fc\r\n"
         "\t\tStart continuous stepping in forward direction\r\n\r\n"
@@ -114,6 +114,8 @@ static void do_help(void)
         "\t\tStart stepping in reverse direction for N rotations\r\n\r\n"
         "\tstop|s\r\n"
         "\t\tStop stepping\r\n\r\n"
+        "\treverse|r\r\n"
+        "\t\tReverse stepping\r\n\r\n"
         "\tsinglestep|ss\r\n"
         "\t\tEnter single step mode\r\n\r\n"
         "\tstartmode\r\n"
@@ -143,7 +145,7 @@ static bool command_prompt_handler(char *text, sys_config_t *config)
     command = strtok(text, " ");
     arg = strtok(NULL, "");
 
-    if (!stricmp(command, "forward") || !stricmp(command, "f") || !stricmp(command, "d"))
+    if (!stricmp(command, "forwardsteps") || !stricmp(command, "fs") || !stricmp(command, "d"))
     {
         uint16_t numsteps;
         uint8_t ret;
@@ -158,7 +160,7 @@ static bool command_prompt_handler(char *text, sys_config_t *config)
 
         return ret;
     }
-    else if (!stricmp(command, "reverse") || !stricmp(command, "r") || !stricmp(command, "u"))
+    else if (!stricmp(command, "reversesteps") || !stricmp(command, "rs") || !stricmp(command, "u"))
     {
         uint16_t numsteps;
         uint8_t ret;
@@ -207,13 +209,18 @@ static bool command_prompt_handler(char *text, sys_config_t *config)
     else if (!stricmp(command, "stop") || !stricmp(command, "s"))
     {
         stepper_stop_continous();
-        uint16_t rotations;
+        int16_t rotations;
         uint8_t fraction;
 
          stepper_get_rotations(&rotations, &fraction);
 
-        printf("Total rotations: %u.%u\r\n", rotations, fraction);
+        printf("Total rotations: %d.%u\r\n", rotations, fraction);
 
+        return true;
+    }
+    else if (!stricmp(command, "reverse") || !stricmp(command, "r"))
+    {
+        stepper_change_dir();
         return true;
     }
     else if (!stricmp(command, "singlestep") || !stricmp(command, "ss"))
